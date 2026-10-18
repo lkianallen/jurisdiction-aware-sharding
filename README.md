@@ -33,9 +33,9 @@ Needs Python 3.10 or newer.
 pip install -r requirements.txt
 ```
 
-## Getting data
+## Acquiring Data
 
-Real transactions come from Sepolia via a free [Alchemy](https://www.alchemy.com) key. Set the ALCHEMY_URL environment variable to your endpoint”, then:
+Real transactions come from Sepolia via a free [Alchemy](https://www.alchemy.com) key. Set the ALCHEMY_URL environment variable to your endpoint, then:
 
 ```
 python scripts/fetch_sepolia_trace.py
@@ -43,7 +43,7 @@ python scripts/fetch_sepolia_trace.py
 
 That saves `sepolia_trace.json` in the repo root. You can skip this and use `train_demo.py`, which runs on synthetic arrivals.
 
-## Running things
+## Run Scripts  
 
 Run these from the repo root. Each script finds the root itself, and anything it writes lands there.
 

@@ -150,13 +150,24 @@ Two design points. First, each episode replays one retagged trace through every 
 
 ## 11. Where things stand
 
-Measured so far (200-rollout checkpoint, before fine-tuning, 10 paired episodes):
+**Baseline (200-rollout checkpoint, before fine-tuning, 10 paired episodes):**
 
 - **Compliance is solved.** The violation rate is about 0%, and it's been reproduced across two independent full runs.
-- **Throughput is not.** On identical workloads the policy's writes are rejected for a full queue about 79% of the time with argmax and about 74% sampled, against 46–48% for random and round-robin. Sampling helps a little but isn't the main cause.
-- **The cause isn't known yet.** The leading explanation is that the policy leans on a favourite node per jurisdiction, so that node saturates while its siblings sit idle (`inspect_node_distribution.py` tests this). A second factor is that throughput never had a per-decision signal (§4, since added).
-- **The 56% load-awareness figure** (the policy picks the least-loaded compliant node 56% of the time against 33% chance) is statistically solid. But the actor can't see queues, so it's probably a fixed preference that happens to correlate with load, not live balancing. It shouldn't be written up as the latter without a test.
-- **The w1/w2 sweep was flat** (12 trials, 80 rollouts each, with two non-converged runs as outliers). Latency is always 0, so w2 does nothing, and w1 only rescales throughput against the −1000 violation penalty. That probably explains the flat result, so the sweep says little about whether the weights matter.
+- **Throughput was not.** On identical workloads the policy's writes were rejected for a full queue about 79% of the time with argmax and about 74% sampled, against 46–48% for random and round-robin.
+- **The 56% load-awareness figure** (the policy picks the least-loaded compliant node 56% of the time against 33% chance) is statistically solid. But the actor can't see queues, so it seems to be a fixed preference that happens to correlate with load, not live balancing.
+
+**After the ablation (`run_ablation.py`, 5 seeds, held-out traces, control trained for the same extra rollouts):**
+
+- **The rejection penalty restored throughput to parity with random compliant routing.** The rejection rate fell from 72.3% (control) to 48.0%, and accepted writes per episode roughly doubled (4,180 vs 2,226, p < 0.001). This supports the explanation that throughput lacked a per-decision signal (§4).
+- The queue-preference bonus reached a similar rejection rate (47.3%) but raised violations from about 2.1 to 3.6 per episode (p < 0.001). The entropy floor alone had no significant effect (p = 0.08), and all three together behaved like queue-preference alone.
+- The favourite-node explanation (inspect_node_distribution.py) is confirmed for the baseline policy under argmax. Each jurisdiction sent 100% of its writes to a single node (node 3: 59.4% of all writes, node 6: 30.3%, node 7: 10.4%), and the other six nodes received none. The favourite saturates while its siblings sit idle, which accounts for the 79% rejection rate.
+
+**Remaining limitations:**
+
+- The sampled policy still lets through about 2–4 violations per episode, out of roughly 8,000 write attempts.
+- Latency has never been exercised: the Sepolia trace has no reads, so the latency term is 0 everywhere.
+- **The w1/w2 sweep was flat** (12 trials, 80 rollouts each, two non-converged outliers). Latency is always 0, so w2 does nothing, and w1 only rescales throughput against the −1000 violation penalty, so the sweep says little about whether the weights matter.
 - **Node capacity is hand-set.** `mu_max=25, p=40` replaced the defaults (10, 20), which rejected 63.6% of all writes for a full queue before jurisdiction was even checked. They're chosen so nodes don't choke, not calibrated to anything measured.
+- **No real read workload.** Latency has never been exercised: public chain data has no read queries, so the Sepolia trace is writes only and the latency term is 0 everywhere. Only the synthetic demo in `main.py` runs it.
 
 Not built: migration and throttle actions, Caliper calibration, real `d_geo` values, and a read workload.

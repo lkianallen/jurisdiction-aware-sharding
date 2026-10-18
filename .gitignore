@@ -5,6 +5,7 @@ __pycache__/
 # training artifacts — large/regenerable, don't commit
 training_run*/
 ablation_run/
+ablation_run(5)/
 *.pt
 
 # real chain data — not sensitive, but no reason to version-control it
