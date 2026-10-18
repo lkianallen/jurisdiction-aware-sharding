@@ -97,7 +97,7 @@ The queue term has a built-in ceiling. The actor never sees other nodes' queues,
 
 The entropy floor is a small proportional controller. If mean policy entropy falls below `0.5 · ln(N)`, `entropy_coef` is raised (`base + 0.02 · gap`) to keep some randomness in the policy. The reasoning is a hypothesis, not a result: random routing spreads load well because its choices are independent, and a confident policy loses that.
 
-These additions came after the baseline comparison in §10. `finetune_routing.py` applies them on top of a converged checkpoint, and their effect on the real trace is still being measured.
+These additions came after the baseline comparison in §10. `finetune_routing.py` applies them on top of a converged checkpoint, and the ablation in §11 isolates which of the three changes does the work.
 
 ---
 
@@ -160,12 +160,11 @@ Two design points. First, each episode replays one retagged trace through every 
 
 - **The rejection penalty restored throughput to parity with random compliant routing.** The rejection rate fell from 72.3% (control) to 48.0%, and accepted writes per episode roughly doubled (4,180 vs 2,226, p < 0.001). This supports the explanation that throughput lacked a per-decision signal (§4).
 - The queue-preference bonus reached a similar rejection rate (47.3%) but raised violations from about 2.1 to 3.6 per episode (p < 0.001). The entropy floor alone had no significant effect (p = 0.08), and all three together behaved like queue-preference alone.
-- The favourite-node explanation (inspect_node_distribution.py) is confirmed for the baseline policy under argmax. Each jurisdiction sent 100% of its writes to a single node (node 3: 59.4% of all writes, node 6: 30.3%, node 7: 10.4%), and the other six nodes received none. The favourite saturates while its siblings sit idle, which accounts for the 79% rejection rate.
+- The favourite-node explanation (`inspect_node_distribution.py`) is confirmed for the baseline policy under argmax. Each jurisdiction sent 100% of its writes to a single node (node 3: 59.4% of all writes, node 6: 30.3%, node 7: 10.4%), and the other six nodes received none. The favourite saturates while its siblings sit idle, which accounts for the 79% rejection rate.
 
 **Remaining limitations:**
 
 - The sampled policy still lets through about 2–4 violations per episode, out of roughly 8,000 write attempts.
-- Latency has never been exercised: the Sepolia trace has no reads, so the latency term is 0 everywhere.
 - **The w1/w2 sweep was flat** (12 trials, 80 rollouts each, two non-converged outliers). Latency is always 0, so w2 does nothing, and w1 only rescales throughput against the −1000 violation penalty, so the sweep says little about whether the weights matter.
 - **Node capacity is hand-set.** `mu_max=25, p=40` replaced the defaults (10, 20), which rejected 63.6% of all writes for a full queue before jurisdiction was even checked. They're chosen so nodes don't choke, not calibrated to anything measured.
 - **No real read workload.** Latency has never been exercised: public chain data has no read queries, so the Sepolia trace is writes only and the latency term is 0 everywhere. Only the synthetic demo in `main.py` runs it.
